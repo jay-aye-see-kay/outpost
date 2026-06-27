@@ -23,6 +23,6 @@ docker run --rm --platform linux/amd64 \
   -v "$PWD":/work -w /work \
   -e NIX_CONFIG=$'extra-experimental-features = nix-command flakes\nfilter-syscalls = false' \
   nixos/nix \
-  bash -c 'out=$(nix build .#image --no-link --print-out-paths) && cp "$out" /work/outpost-image.tar.gz && echo "BUILT: $out"'
+  bash -c 'out=$(nix build .#image --no-link --print-out-paths) && cp "$out" /work/outpost-image.tar.gz && chmod u+w /work/outpost-image.tar.gz && echo "BUILT: $out"'
 
 echo "Wrote $PWD/outpost-image.tar.gz"
