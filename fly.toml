@@ -1,0 +1,11 @@
+# Fly app config — Task 1: boot the Nix-built image and confirm it runs.
+# Scale-to-zero, services, volume and secrets come in later tasks.
+app = "outpost-wiki"
+primary_region = "syd" # Sydney is similar pricing to NA, same as other is asia
+
+[build]
+  # Image is built out-of-band by ./build-image.sh and pushed by ./deploy.sh.
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
