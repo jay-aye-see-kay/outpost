@@ -35,3 +35,7 @@ primary_region = "syd" # Sydney is similar pricing to NA, same as other is asia
 [[vm]]
   size = "shared-cpu-1x"
   memory = "1gb"
+
+# Free swap (carved from rootfs disk, not billed as RAM). opencode/Bun idles
+# high (~800MB); this lets the kernel page out cold pages so bursts don't OOM.
+swap_size_mb = 512
