@@ -26,7 +26,7 @@
           };
           idleWatcher = pkgs.writeShellApplication {
             name = "outpost-idle-watcher";
-            runtimeInputs = with pkgs; [ curl jq coreutils ];
+            runtimeInputs = with pkgs; [ curl jq coreutils process-compose procps ];
             text = builtins.readFile ./scripts/idle-watcher.sh;
           };
 

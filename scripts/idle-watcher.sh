@@ -47,7 +47,13 @@ while true; do
     "${BASE}/session/status?directory=${DIR}" || echo '{}')"
   if [ "$(printf '%s' "$status" | jq 'length' 2>/dev/null || echo 1)" = "0" ]; then
     echo "idle ${IDLE_MINUTES}m and no busy sessions -> shutting down"
-    kill -TERM 1
+    # NOT kill -TERM 1: on Fly, PID 1 is Fly's init, not our supervisor. Tell
+    # process-compose to shut itself down (it runs its API on PC_PORT); when it
+    # exits, Fly's init sees the main command finish and stops the Machine.
+    # Fallbacks cover an unreachable API / older process-compose.
+    process-compose down -p "${PC_PORT:-8099}" \
+      || pkill -TERM process-compose \
+      || kill -TERM 1
     exit 0
   fi
 done
