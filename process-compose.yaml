@@ -19,9 +19,9 @@ processes:
       max_restarts: 5
 
   gitwatch:
-    # Commit AND push on every change (seconds-level debounce). origin/remote
-    # and identity are set up by bootstrap.
-    command: "gitwatch -r origin /root/llm-wiki"
+    # Commit AND push on every change. -s 30 batches an agent's burst of edits
+    # into one commit (30s idle window); still well under the idle-watcher window.
+    command: "gitwatch -s 30 -r origin /root/llm-wiki"
     working_dir: "/root/llm-wiki"
     depends_on:
       bootstrap:
