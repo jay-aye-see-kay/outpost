@@ -10,8 +10,7 @@ primary_region = "syd" # Sydney is similar pricing to NA, same as other is asia
   # SSH URL of the private wiki repo, cloned into ~/llm-wiki on first boot.
   WIKI_REPO = "git@github.com:jay-aye-see-kay/llm-wiki.git"
   # Idle-watcher: minutes of no opencode activity before clean self-halt.
-  # Set to 1 for testing scale-to-zero; bump up once verified.
-  IDLE_MINUTES = "1"
+  IDLE_MINUTES = "5"
 
 # The proxy WAKES a stopped machine on an inbound connection (auto_start), but
 # never stops it itself (auto_stop = off) — the in-container idle-watcher will
