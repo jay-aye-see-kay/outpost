@@ -1,0 +1,37 @@
+# process-compose supervises the container's long-running pieces (replacing the
+# old single `exec opencode web`). bootstrap runs once to completion; the three
+# services start only after it succeeds. The idle-watcher waits for opencode to
+# be up so it can subscribe to the event stream.
+version: "0.5"
+
+processes:
+  bootstrap:
+    command: "outpost-bootstrap"
+
+  opencode:
+    command: "opencode web --hostname 0.0.0.0 --port 8080"
+    working_dir: "/root/llm-wiki"
+    depends_on:
+      bootstrap:
+        condition: process_completed_successfully
+    availability:
+      restart: "on_failure"
+      max_restarts: 5
+
+  gitwatch:
+    # Commit AND push on every change (seconds-level debounce). origin/remote
+    # and identity are set up by bootstrap.
+    command: "gitwatch -r origin /root/llm-wiki"
+    working_dir: "/root/llm-wiki"
+    depends_on:
+      bootstrap:
+        condition: process_completed_successfully
+    availability:
+      restart: "on_failure"
+      max_restarts: 5
+
+  idle-watcher:
+    command: "outpost-idle-watcher"
+    depends_on:
+      opencode:
+        condition: process_started
