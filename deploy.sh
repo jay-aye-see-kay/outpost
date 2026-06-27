@@ -16,7 +16,7 @@ IMG="registry.fly.io/${APP}:latest"
 # an exact first-column match means it's already created -> skip create, just deploy.
 # A create failing with "Name has already been taken" here means another org owns
 # that global name: pick a different $APP.
-if flyctl apps list 2>/dev/null | awk 'NR>1 {print $1}' | grep -qx "$APP"; then
+if flyctl apps list 2>/dev/null | grep -qw "$APP"; then
   echo "App $APP already exists — skipping create."
 else
   echo "Creating app $APP ..."
@@ -31,7 +31,7 @@ flyctl auth docker
 # Volumes are region-bound, so create it in the app's primary_region.
 VOLUME="${FLY_VOLUME:-outpost_data}"
 REGION="$(awk -F'"' '/primary_region/ {print $2}' fly.toml)"
-if flyctl volumes list --app "$APP" 2>/dev/null | awk 'NR>1 {print $2}' | grep -qx "$VOLUME"; then
+if flyctl volumes list --app "$APP" 2>/dev/null | grep -qw "$VOLUME"; then
   echo "Volume $VOLUME already exists — skipping create."
 else
   echo "Creating volume $VOLUME in $REGION ..."
