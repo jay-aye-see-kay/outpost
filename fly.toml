@@ -31,4 +31,4 @@ primary_region = "syd" # Sydney is similar pricing to NA, same as other is asia
 
 [[vm]]
   size = "shared-cpu-1x"
-  memory = "512mb"
+  memory = "1gb"
