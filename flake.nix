@@ -27,12 +27,38 @@
               bashInteractive
               coreutils
               cacert
+              darkhttpd
             ];
             pathsToLink = [
               "/bin"
               "/etc"
             ];
           };
+
+          # Demo landing page served over Fly's HTTPS. Replace with the paseo
+          # daemon once it's wired up.
+          webroot = pkgs.runCommand "outpost-webroot" { } ''
+            mkdir -p $out
+            cat > $out/index.html <<'HTML'
+            <!doctype html>
+            <html lang="en">
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1">
+              <title>outpost</title>
+              <style>
+                body { font-family: system-ui, sans-serif; max-width: 32rem;
+                       margin: 4rem auto; padding: 0 1rem; line-height: 1.5; }
+              </style>
+            </head>
+            <body>
+              <h1>outpost is up</h1>
+              <p>Personal LLM wiki — demo service running on Fly.io.</p>
+              <p>This static page is a placeholder for the paseo daemon.</p>
+            </body>
+            </html>
+            HTML
+          '';
         in
         pkgs.dockerTools.buildLayeredImage {
           name = "outpost";
@@ -43,7 +69,7 @@
               "PATH=/bin"
               "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
             ];
-            # Task 1: prove the image runs on Fly and the tools are present.
+            # Task 2: serve a demo page over Fly's HTTPS on the http_service port.
             Cmd = [
               "/bin/bash"
               "-c"
@@ -52,8 +78,8 @@
                 echo "pi:   $(pi --version 2>&1 || true)"
                 echo "git:  $(git --version)"
                 echo "curl: $(curl --version | head -n1)"
-                echo "=== idling (replace with paseo daemon later) ==="
-                while true; do sleep 3600; done
+                echo "=== serving demo page on :8080 (replace with paseo daemon later) ==="
+                exec darkhttpd ${webroot} --port 8080 --addr 0.0.0.0
               ''
             ];
           };
