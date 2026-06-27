@@ -78,10 +78,10 @@
               "HOME=/root"
               # Shared by bootstrap, opencode (working dir) and idle-watcher.
               "WIKI=/root/llm-wiki"
-              # gitwatch's wrapped git runs with a reduced PATH that lacks ssh, so
-              # `git push` fails to fork ssh. Point git at an absolute ssh (uses
-              # the default ~/.ssh key + known_hosts since HOME is set).
-              "GIT_SSH_COMMAND=${pkgs.openssh}/bin/ssh"
+              # gitwatch's wrapped git runs with a reduced PATH/HOME, so relying
+              # on ssh defaults (PATH lookup + ~/.ssh) is fragile. Pin everything:
+              # absolute ssh, the deploy key, and the pinned known_hosts file.
+              "GIT_SSH_COMMAND=${pkgs.openssh}/bin/ssh -i /root/.ssh/id_ed25519 -o IdentitiesOnly=yes -o UserKnownHostsFile=/root/.ssh/known_hosts"
             ];
             # process-compose supervises bootstrap (one-shot) + opencode + gitwatch
             # + idle-watcher. --port avoids clashing its own API with opencode:8080.
