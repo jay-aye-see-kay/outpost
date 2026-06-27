@@ -16,6 +16,13 @@ primary_region = "syd" # Sydney is similar pricing to NA, same as other is asia
   auto_stop_machines = "off"
   min_machines_running = 0
 
+# Persistent state lives here: the wiki git repo and the paseo daemon home.
+# Survives machine stop/start (scale-to-zero). Created by ./deploy.sh if missing.
+# A volume is bound to one machine in one region — fine for our single-machine setup.
+[[mounts]]
+  source = "outpost_data"
+  destination = "/data"
+
 [[vm]]
   size = "shared-cpu-1x"
   memory = "512mb"

@@ -79,6 +79,20 @@
                 echo "git:  $(git --version)"
                 echo "curl: $(curl --version | head -n1)"
                 echo "=== serving demo page on :8080 (replace with paseo daemon later) ==="
+
+                # Prove the Fly Volume persists across restarts: append a boot line
+                # and print the running history. This file lives on /data (the volume).
+                mkdir -p /data
+                echo "boot at $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> /data/boots.log
+                echo "=== /data/boots.log (volume persistence history) ==="
+                cat /data/boots.log
+
+                # Confirm runtime secret injection WITHOUT leaking values.
+                echo "=== secrets present? (set / unset only, values never printed) ==="
+                for v in ANTHROPIC_API_KEY PASEO_PASSWORD GIT_DEPLOY_KEY; do
+                  if [ -n "''${!v:-}" ]; then echo "$v: set"; else echo "$v: unset"; fi
+                done
+
                 exec darkhttpd ${webroot} --port 8080 --addr 0.0.0.0
               ''
             ];
