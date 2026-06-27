@@ -21,44 +21,18 @@
           root = pkgs.buildEnv {
             name = "outpost-root";
             paths = with pkgs; [
-              pi-coding-agent
+              opencode
               gitMinimal
               curl
               bashInteractive
               coreutils
               cacert
-              darkhttpd
             ];
             pathsToLink = [
               "/bin"
               "/etc"
             ];
           };
-
-          # Demo landing page served over Fly's HTTPS. Replace with the paseo
-          # daemon once it's wired up.
-          webroot = pkgs.runCommand "outpost-webroot" { } ''
-            mkdir -p $out
-            cat > $out/index.html <<'HTML'
-            <!doctype html>
-            <html lang="en">
-            <head>
-              <meta charset="utf-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1">
-              <title>outpost</title>
-              <style>
-                body { font-family: system-ui, sans-serif; max-width: 32rem;
-                       margin: 4rem auto; padding: 0 1rem; line-height: 1.5; }
-              </style>
-            </head>
-            <body>
-              <h1>outpost is up</h1>
-              <p>Personal LLM wiki — demo service running on Fly.io.</p>
-              <p>This static page is a placeholder for the paseo daemon.</p>
-            </body>
-            </html>
-            HTML
-          '';
         in
         pkgs.dockerTools.buildLayeredImage {
           name = "outpost";
@@ -68,32 +42,44 @@
             Env = [
               "PATH=/bin"
               "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
+              # The Fly Volume is mounted here; opencode state + the wiki repo live
+              # under it, so both persist across scale-to-zero.
+              "HOME=/root"
             ];
-            # Task 2: serve a demo page over Fly's HTTPS on the http_service port.
+            # Run opencode's headless web server. The phone hits the built-in web
+            # UI over Fly's TLS; OPENCODE_SERVER_PASSWORD gates it with Basic Auth.
             Cmd = [
               "/bin/bash"
               "-c"
               ''
+                set -u
                 echo "=== outpost container up ==="
-                echo "pi:   $(pi --version 2>&1 || true)"
-                echo "git:  $(git --version)"
-                echo "curl: $(curl --version | head -n1)"
-                echo "=== serving demo page on :8080 (replace with paseo daemon later) ==="
+                echo "opencode: $(opencode --version 2>&1 || true)"
+                echo "git:      $(git --version)"
+                echo "curl:     $(curl --version | head -n1)"
 
-                # Prove the Fly Volume persists across restarts: append a boot line
-                # and print the running history. This file lives on /data (the volume).
-                mkdir -p /data
-                echo "boot at $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> /data/boots.log
-                echo "=== /data/boots.log (volume persistence history) ==="
-                cat /data/boots.log
+                # HOME is the Fly Volume mount point (/root). Prove it persists:
+                # append a boot line and print the running history.
+                mkdir -p "$HOME"
+                echo "boot at $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$HOME/boots.log"
+                echo "=== $HOME/boots.log (volume persistence history) ==="
+                cat "$HOME/boots.log"
 
                 # Confirm runtime secret injection WITHOUT leaking values.
                 echo "=== secrets present? (set / unset only, values never printed) ==="
-                for v in ANTHROPIC_API_KEY PASEO_PASSWORD GIT_DEPLOY_KEY; do
+                for v in GIT_DEPLOY_KEY OPENCODE_SERVER_PASSWORD; do
                   if [ -n "''${!v:-}" ]; then echo "$v: set"; else echo "$v: unset"; fi
                 done
 
-                exec darkhttpd ${webroot} --port 8080 --addr 0.0.0.0
+                # opencode's working dir is the wiki repo. Cloning it (via the
+                # deploy key) is a later task; for now just ensure the dir exists
+                # so opencode has somewhere to run.
+                WIKI="$HOME/llm-wiki"
+                mkdir -p "$WIKI"
+                cd "$WIKI"
+
+                echo "=== starting opencode web on :8080 (wd: $WIKI) ==="
+                exec opencode web --hostname 0.0.0.0 --port 8080
               ''
             ];
           };

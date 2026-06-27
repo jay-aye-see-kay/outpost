@@ -10,18 +10,20 @@ primary_region = "syd" # Sydney is similar pricing to NA, same as other is asia
 # never stops it itself (auto_stop = off) — the in-container idle-watcher will
 # do a clean self-halt later. min_machines_running = 0 lets it scale to zero.
 [http_service]
-  internal_port = 8080          # TODO: set to the paseo daemon's listen port
+  internal_port = 8080          # opencode web server (opencode web --port 8080)
   force_https = true
   auto_start_machines = true
   auto_stop_machines = "off"
   min_machines_running = 0
 
-# Persistent state lives here: the wiki git repo and the paseo daemon home.
-# Survives machine stop/start (scale-to-zero). Created by ./deploy.sh if missing.
-# A volume is bound to one machine in one region — fine for our single-machine setup.
+# Persistent state lives here: the wiki git repo (~/llm-wiki) and opencode's DB
+# (~/.local/share/opencode, which holds the zen auth token + sessions). The
+# volume is mounted as HOME, so both survive machine stop/start (scale-to-zero).
+# Created by ./deploy.sh if missing. A volume is bound to one machine in one
+# region — fine for our single-machine setup.
 [[mounts]]
   source = "outpost_data"
-  destination = "/data"
+  destination = "/root"
 
 [[vm]]
   size = "shared-cpu-1x"
