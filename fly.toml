@@ -6,6 +6,10 @@ primary_region = "syd" # Sydney is similar pricing to NA, same as other is asia
 [build]
   # Image is built out-of-band by ./build-image.sh and pushed by ./deploy.sh.
 
+[env]
+  # SSH URL of the private wiki repo, cloned into ~/llm-wiki on first boot.
+  WIKI_REPO = "git@github.com:jay-aye-see-kay/llm-wiki.git"
+
 # The proxy WAKES a stopped machine on an inbound connection (auto_start), but
 # never stops it itself (auto_stop = off) — the in-container idle-watcher will
 # do a clean self-halt later. min_machines_running = 0 lets it scale to zero.

@@ -23,10 +23,14 @@
             paths = with pkgs; [
               opencode
               gitMinimal
+              openssh
               curl
               bashInteractive
               coreutils
               cacert
+              # opencode web auto-opens a browser via xdg-open; on this headless
+              # box that errors out. A no-op shim makes the auto-open harmless.
+              (writeShellScriptBin "xdg-open" "exit 0")
             ];
             pathsToLink = [
               "/bin"
@@ -37,7 +41,13 @@
         pkgs.dockerTools.buildLayeredImage {
           name = "outpost";
           tag = "latest";
-          contents = [ root ];
+          contents = [
+            root
+            # ssh (used by git clone) calls getpwuid(0); a dockerTools image has no
+            # /etc/passwd, so root is unresolvable -> "No user exists for uid 0".
+            # fakeNss provides a minimal passwd/group with root + nobody.
+            pkgs.fakeNss
+          ];
           config = {
             Env = [
               "PATH=/bin"
@@ -71,11 +81,32 @@
                   if [ -n "''${!v:-}" ]; then echo "$v: set"; else echo "$v: unset"; fi
                 done
 
-                # opencode's working dir is the wiki repo. Cloning it (via the
-                # deploy key) is a later task; for now just ensure the dir exists
-                # so opencode has somewhere to run.
+                # Set up the GitHub deploy key so git can talk to the private repo
+                # over SSH. Key comes from the GIT_DEPLOY_KEY secret (never baked in).
+                # GitHub's host key is pinned (no blind StrictHostKeyChecking=no).
+                install -d -m 700 "$HOME/.ssh"
+                if [ -n "''${GIT_DEPLOY_KEY:-}" ]; then
+                  printf '%s\n' "$GIT_DEPLOY_KEY" > "$HOME/.ssh/id_ed25519"
+                  chmod 600 "$HOME/.ssh/id_ed25519"
+                fi
+                cat > "$HOME/.ssh/known_hosts" <<'KNOWN'
+github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
+KNOWN
+                chmod 644 "$HOME/.ssh/known_hosts"
+                export GIT_SSH_COMMAND="ssh -i $HOME/.ssh/id_ed25519 -o IdentitiesOnly=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts"
+
+                # opencode's working dir is the wiki repo. Clone it on first boot
+                # (empty volume); on later boots gitwatch keeps it in sync.
                 WIKI="$HOME/llm-wiki"
-                mkdir -p "$WIKI"
+                if [ ! -d "$WIKI/.git" ]; then
+                  if [ -n "''${WIKI_REPO:-}" ]; then
+                    echo "=== cloning $WIKI_REPO into $WIKI ==="
+                    git clone "$WIKI_REPO" "$WIKI" || { echo "clone FAILED"; mkdir -p "$WIKI"; }
+                  else
+                    echo "=== WIKI_REPO unset; starting with an empty $WIKI ==="
+                    mkdir -p "$WIKI"
+                  fi
+                fi
                 cd "$WIKI"
 
                 echo "=== starting opencode web on :8080 (wd: $WIKI) ==="
