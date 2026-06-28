@@ -10,17 +10,27 @@ primary_region = "syd" # Sydney is similar pricing to NA, same as other is asia
   # SSH URL of the private wiki repo, cloned into ~/llm-wiki on first boot.
   WIKI_REPO = "git@github.com:jay-aye-see-kay/llm-wiki.git"
   # Idle-watcher: minutes of no opencode activity before clean self-halt.
-  IDLE_MINUTES = "5"
+  # Kept low (1m) so a stray bot poke only costs ~1m of awake time, not 5m.
+  IDLE_MINUTES = "1"
 
 # The proxy WAKES a stopped machine on an inbound connection (auto_start), but
 # never stops it itself (auto_stop = off) — the in-container idle-watcher will
 # do a clean self-halt later. min_machines_running = 0 lets it scale to zero.
-[http_service]
+#
+# Explicit [[services]] (not the [http_service] shorthand) so we publish ONLY
+# 443. The shorthand also opens port 80, which dumb scanners hammer — every hit
+# there would wake the machine just to issue an https redirect. The phone always
+# uses https, so port 80 buys us nothing but extra wake-ups.
+[[services]]
   internal_port = 8080          # opencode web server (opencode web --port 8080)
-  force_https = true
+  protocol = "tcp"
   auto_start_machines = true
   auto_stop_machines = "off"
   min_machines_running = 0
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]   # proxy terminates TLS, forwards http to :8080
 
 # Persistent state lives here: the wiki git repo (~/llm-wiki) and opencode's DB
 # (~/.local/share/opencode, which holds the zen auth token + sessions). The
