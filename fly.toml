@@ -32,6 +32,17 @@ primary_region = "syd" # Sydney is similar pricing to NA, same as other is asia
     port = 443
     handlers = ["tls", "http"]   # proxy terminates TLS, forwards http to :8080
 
+  # Cold-start race fix: on a scale-to-zero wake, flyd reports the machine
+  # "started" before opencode (Bun) has bound :8080, so the proxy used to try
+  # connecting, get "connection refused", and give up after ~8s (intermittent
+  # boot failures + a red "unhealthy" badge). A TCP check makes the proxy wait
+  # for opencode to actually listen — grace_period covers the slow Bun boot —
+  # before routing traffic or marking the machine unhealthy.
+  [[services.tcp_checks]]
+    interval = "10s"
+    timeout = "5s"
+    grace_period = "30s"   # bump if logs show opencode taking longer to bind
+
 # Persistent state lives here: the wiki git repo (~/llm-wiki) and opencode's DB
 # (~/.local/share/opencode, which holds the zen auth token + sessions). The
 # volume is mounted as HOME, so both survive machine stop/start (scale-to-zero).
