@@ -9,20 +9,8 @@ HOME_DIR="${HOME:-/root}"
 WIKI="${WIKI:-/root/llm-wiki}"
 
 echo "=== outpost bootstrap ==="
-echo "opencode: $(opencode --version 2>&1 || true)"
-echo "git:      $(git --version)"
 
-# HOME is the Fly Volume mount point. Record boots to prove it persists.
 mkdir -p "$HOME_DIR"
-echo "boot at $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$HOME_DIR/boots.log"
-echo "=== $HOME_DIR/boots.log (volume persistence history) ==="
-cat "$HOME_DIR/boots.log"
-
-# Confirm runtime secret injection WITHOUT leaking values.
-echo "=== secrets present? (set / unset only, values never printed) ==="
-for v in GIT_DEPLOY_KEY OPENCODE_SERVER_PASSWORD; do
-  if [ -n "${!v:-}" ]; then echo "$v: set"; else echo "$v: unset"; fi
-done
 
 # GitHub deploy key (from the GIT_DEPLOY_KEY secret, never baked into the image)
 # plus a pinned host key (no blind StrictHostKeyChecking=no).
@@ -51,3 +39,7 @@ if [ ! -d "$WIKI/.git" ]; then
     mkdir -p "$WIKI"
   fi
 fi
+
+# Bootstrap done; process-compose now starts opencode + gitwatch. This is the
+# marker to grep for after a deploy (see AGENTS.md).
+echo "=== outpost container up ==="
