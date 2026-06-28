@@ -50,7 +50,8 @@ flyctl logs --app outpost-wiki  # expect "=== outpost container up ==="
 ## Cost / free tier
 
 - Legacy free allowance: 3× shared-cpu-1x **256mb** VMs + 3GB volume.
-- We run **1gb + 512mb swap** (opencode/Bun idles ~800mb; swap absorbs bursts so
-  they don't OOM) → over free tier on RAM.
-- With scale-to-zero ~23h/day, real cost ≈ **a few cents/month** (billed per-second
-  while awake). Volume stays within the free 3GB.
+- VM size + swap live in `fly.toml` (`[[vm]]` and `swap_size_mb`) — opencode/Bun
+  idles high (~800mb) and bursts, so we have to run above the free RAM tier
+- Because the machine scales to zero most of the day, CPU+RAM are billed
+  per-second only while awake, so even an oversized VM stays cheap (order of
+  cents/month). Volume stays within the free 3GB.
